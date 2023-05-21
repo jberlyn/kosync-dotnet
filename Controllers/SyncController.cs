@@ -12,6 +12,12 @@ public class SyncController : ControllerBase
         _db = db;
     }
 
+    [HttpGet("/healthcheck")]
+    public ObjectResult HealthCheck()
+    {
+        return StatusCode(200, new { state = "OK" });
+    }
+
     [HttpGet("/users/auth")]
     public ObjectResult AuthoriseUser()
     {
