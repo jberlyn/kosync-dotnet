@@ -1,0 +1,13 @@
+version: "3"
+
+services:
+
+  kosync-dotnet:
+    container_name: kosync-dotnet
+    build: .
+    ports:
+      - 8080:80
+    environment:
+      - REGISTRATION_DISABLED=true
+    volumes:
+      - /home/jberlyn/src/kosync-dotnet/data:/app/data
