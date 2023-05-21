@@ -29,3 +29,5 @@ services:
 If the `REGISTRATION_DISABLED` environment variable is set to `true`, the sync server will respond with an `Account registration is disabled` error message when trying to create a new account. This is useful if you expose your sync server to the public internet, but don't want anyone to be able to create an account. This is a feature that is not available in the official sync server.
 
 Mapping user to `1000:1000` is just a way to ensure the database files are created using your own user, rather than root. If your user account ID is different from `1000:1000`, change it to yours.
+
+This example doesn't expose any ports for the container, however the sync server is accessible via port 80 inside the container. The recommendation is to expose the server via a reverse proxy such as [Nginx Proxy Manager](https://nginxproxymanager.com/).
