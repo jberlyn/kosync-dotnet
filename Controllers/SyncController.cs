@@ -7,9 +7,12 @@ public class SyncController : ControllerBase
 {
     private KosyncDb _db;
 
-    public SyncController(KosyncDb db)
+    private UserService _userService;
+
+    public SyncController(KosyncDb db, UserService userService)
     {
         _db = db;
+        _userService = userService;
     }
 
     [HttpGet("/healthcheck")]
@@ -35,20 +38,28 @@ public class SyncController : ControllerBase
             });
         }
 
-        var users = _db.Context.GetCollection<User>("users");
+        var userCollection = _db.Context.GetCollection<User>("users");
 
-        var existing = users.FindOne(u => u.Username == username && u.PasswordHash == passwordHash);
-        if (existing is null)
+        var user = userCollection.FindOne(u => u.Username == username && u.PasswordHash == passwordHash);
+        if (user is null)
         {
             return StatusCode(401, new
             {
-                message = "Account could not be found"
+                message = "User could not be found"
+            });
+        }
+
+        if (user.IsActive == false)
+        {
+            return StatusCode(401, new
+            {
+                message = "User is inactive"
             });
         }
 
         return StatusCode(200, new
         {
-            username = username
+            username = user.Username
         });
     }
 
@@ -59,13 +70,13 @@ public class SyncController : ControllerBase
         {
             return StatusCode(402, new
             {
-                message = "Account registration is disabled"
+                message = "User registration is disabled"
             });
         }
 
-        var users = _db.Context.GetCollection<User>("users");
+        var userCollection = _db.Context.GetCollection<User>("users");
 
-        var existing = users.FindOne(u => u.Username == payload.username);
+        var existing = userCollection.FindOne(u => u.Username == payload.username);
         if (existing is not null)
         {
             return StatusCode(402, new
@@ -78,11 +89,10 @@ public class SyncController : ControllerBase
         {
             Username = payload.username,
             PasswordHash = payload.password,
-            IsAdministrator = false
         };
 
-        users.Insert(user);
-        users.EnsureIndex(u => u.Username);
+        userCollection.Insert(user);
+        userCollection.EnsureIndex(u => u.Username);
 
         return StatusCode(201, new
         {
@@ -93,7 +103,7 @@ public class SyncController : ControllerBase
     [HttpPut("/syncs/progress")]
     public ObjectResult SyncProgress(DocumentRequest payload)
     {
-        if (AuthorizeUser() == false)
+        if (_userService.IsAuthorised(Request) == false)
         {
             return StatusCode(401, new
             {
@@ -101,11 +111,11 @@ public class SyncController : ControllerBase
             });
         }
 
-        string? username = GetCredentials().Username;
+        string? username = _userService.GetCredentials(Request).Username;
 
-        var users = _db.Context.GetCollection<User>("users").Include(i => i.Documents);
+        var userCollection = _db.Context.GetCollection<User>("users").Include(i => i.Documents);
 
-        var user = users.FindOne(i => i.Username == username);
+        var user = userCollection.FindOne(i => i.Username == username);
 
         var document = user.Documents.SingleOrDefault(i => i.DocumentHash == payload.document);
         if (document is null)
@@ -121,7 +131,7 @@ public class SyncController : ControllerBase
         document.DeviceId = payload.device_id;
         document.Timestamp = DateTime.UtcNow;
 
-        users.Update(user);
+        userCollection.Update(user);
 
         return StatusCode(200, new
         {
@@ -133,7 +143,7 @@ public class SyncController : ControllerBase
     [HttpGet("/syncs/progress/{documentHash}")]
     public ObjectResult GetProgress(string documentHash)
     {
-        if (AuthorizeUser() == false)
+        if (_userService.IsAuthorised(Request) == false)
         {
             return StatusCode(401, new
             {
@@ -141,11 +151,11 @@ public class SyncController : ControllerBase
             });
         }
 
-        string? username = GetCredentials().Username;
+        string? username = _userService.GetCredentials(Request).Username;
 
-        var users = _db.Context.GetCollection<User>("users").Include(i => i.Documents);
+        var userCollection = _db.Context.GetCollection<User>("users").Include(i => i.Documents);
 
-        var user = users.FindOne(i => i.Username == username);
+        var user = userCollection.FindOne(i => i.Username == username);
 
         var document = user.Documents.SingleOrDefault(i => i.DocumentHash == documentHash);
 
@@ -165,17 +175,5 @@ public class SyncController : ControllerBase
             percentage = document.Percentage,
             progress = document.Progress
         });
-    }
-
-    private (string? Username, string? PasswordHash) GetCredentials()
-    {
-        return (Request.Headers["x-auth-user"], Request.Headers["x-auth-key"]);
-    }
-
-    private bool AuthorizeUser()
-    {
-        (string? username, string? passwordHash) = GetCredentials();
-        var users = _db.Context.GetCollection<User>("users");
-        return (users.FindOne(u => u.Username == username && u.PasswordHash == passwordHash) is not null);
     }
 }

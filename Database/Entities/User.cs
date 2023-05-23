@@ -8,7 +8,9 @@ public class User
 
     public string PasswordHash { get; set; } = default!;
 
-    public bool IsAdministrator { get; set; } = default!;
+    public bool IsActive { get; set; } = true;
+
+    public bool IsAdministrator { get; set; } = false;
 
     public List<Document> Documents { get; set; } = new();
 }
