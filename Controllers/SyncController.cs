@@ -15,6 +15,12 @@ public class SyncController : ControllerBase
         _userService = userService;
     }
 
+    [HttpGet("/")]
+    public IActionResult Index()
+    {
+        return Ok("kosync-dotnet server is running.");
+    }
+
     [HttpGet("/healthcheck")]
     public ObjectResult HealthCheck()
     {
