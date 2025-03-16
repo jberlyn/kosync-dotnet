@@ -9,10 +9,13 @@ public class ManagementController : ControllerBase
 
     private UserService _userService;
 
-    public ManagementController(KosyncDb db, UserService userService)
+    private ILogger<ManagementController> logger;
+
+    public ManagementController(KosyncDb db, UserService userService, ILogger<ManagementController> logger)
     {
         _db = db;
         _userService = userService;
+        this.logger = logger;
     }
 
     [HttpGet("/manage/users")]
@@ -20,6 +23,8 @@ public class ManagementController : ControllerBase
     {
         if (_userService.IsAdminUser(Request) == false)
         {
+            logger?.Log(LogLevel.Warning, "Unauthorized GET request to /manage/users.");
+
             return StatusCode(401, new
             {
                 message = "Unauthorized"
@@ -45,6 +50,7 @@ public class ManagementController : ControllerBase
     {
         if (_userService.IsAdminUser(Request) == false)
         {
+            logger?.Log(LogLevel.Warning, "Unauthorized POST request to /manage/users.");
             return StatusCode(401, new
             {
                 message = "Unauthorized"
@@ -85,6 +91,7 @@ public class ManagementController : ControllerBase
     {
         if (_userService.IsAdminUser(Request) == false)
         {
+            logger?.Log(LogLevel.Warning, "Unauthorized GET request to /manage/users/documents.");
             return StatusCode(401, new
             {
                 message = "Unauthorized"
@@ -110,6 +117,7 @@ public class ManagementController : ControllerBase
     {
         if (_userService.IsAdminUser(Request) == false)
         {
+            logger?.Log(LogLevel.Warning, "Unauthorized PUT request to /manage/users/active.");
             return StatusCode(401, new
             {
                 message = "Unauthorized"
@@ -149,6 +157,7 @@ public class ManagementController : ControllerBase
     {
         if (_userService.IsAdminUser(Request) == false)
         {
+            logger?.Log(LogLevel.Warning, "Unauthorized PUT request to /manage/users/password.");
             return StatusCode(401, new
             {
                 message = "Unauthorized"

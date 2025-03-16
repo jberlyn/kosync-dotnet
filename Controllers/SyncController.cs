@@ -9,10 +9,13 @@ public class SyncController : ControllerBase
 
     private UserService _userService;
 
-    public SyncController(KosyncDb db, UserService userService)
+    private ILogger<SyncController> logger;
+
+    public SyncController(KosyncDb db, UserService userService, ILogger<SyncController> logger)
     {
         _db = db;
         _userService = userService;
+        this.logger = logger;
     }
 
     [HttpGet("/")]
@@ -49,6 +52,7 @@ public class SyncController : ControllerBase
         var user = userCollection.FindOne(u => u.Username == username && u.PasswordHash == passwordHash);
         if (user is null)
         {
+            logger?.Log(LogLevel.Warning, "Login with invalid credentials attempted.");
             return StatusCode(401, new
             {
                 message = "User could not be found"
@@ -57,12 +61,15 @@ public class SyncController : ControllerBase
 
         if (user.IsActive == false)
         {
+            logger?.Log(LogLevel.Warning, $"Login with inactive account [{username}] attempted.");
+
             return StatusCode(401, new
             {
                 message = "User is inactive"
             });
         }
 
+        logger?.Log(LogLevel.Information, $"User {username} logged in.");
         return StatusCode(200, new
         {
             username = user.Username
@@ -74,6 +81,7 @@ public class SyncController : ControllerBase
     {
         if (Environment.GetEnvironmentVariable("REGISTRATION_DISABLED") == "true")
         {
+            logger?.Log(LogLevel.Warning, "Account creation attempted.");
             return StatusCode(402, new
             {
                 message = "User registration is disabled"
@@ -85,6 +93,7 @@ public class SyncController : ControllerBase
         var existing = userCollection.FindOne(u => u.Username == payload.username);
         if (existing is not null)
         {
+            logger?.Log(LogLevel.Information, $"Attempted to create user that already exists - [{payload.username}].");
             return StatusCode(402, new
             {
                 message = "User already exists"
@@ -100,6 +109,8 @@ public class SyncController : ControllerBase
         userCollection.Insert(user);
         userCollection.EnsureIndex(u => u.Username);
 
+
+        logger?.Log(LogLevel.Information, $"User [{payload.username}] created.");
         return StatusCode(201, new
         {
             username = payload.username
@@ -111,6 +122,8 @@ public class SyncController : ControllerBase
     {
         if (_userService.IsAuthorised(Request) == false)
         {
+            logger?.Log(LogLevel.Warning, "Unauthorized progress update received.");
+
             return StatusCode(401, new
             {
                 message = "Unauthorized"
@@ -118,6 +131,8 @@ public class SyncController : ControllerBase
         }
 
         string? username = _userService.GetCredentials(Request).Username;
+
+        logger?.Log(LogLevel.Information, $"Received progress update for user [{username}] with document hash [{payload.document}].");
 
         var userCollection = _db.Context.GetCollection<User>("users").Include(i => i.Documents);
 
@@ -151,6 +166,8 @@ public class SyncController : ControllerBase
     {
         if (_userService.IsAuthorised(Request) == false)
         {
+            logger?.Log(LogLevel.Warning, "Unauthorized progress request received.");
+
             return StatusCode(401, new
             {
                 message = "Unauthorized"
@@ -158,6 +175,8 @@ public class SyncController : ControllerBase
         }
 
         string? username = _userService.GetCredentials(Request).Username;
+
+        logger?.Log(LogLevel.Information, $"Received progress request for user [{username}] with document hash [{documentHash}].");
 
         var userCollection = _db.Context.GetCollection<User>("users").Include(i => i.Documents);
 
@@ -167,6 +186,7 @@ public class SyncController : ControllerBase
 
         if (document is null)
         {
+            logger?.Log(LogLevel.Information, $"Document hash [{documentHash}] not found for user [{username}].");
             return StatusCode(502, new
             {
                 message = "Document not found on server"
