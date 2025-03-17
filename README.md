@@ -33,7 +33,7 @@ If the `REGISTRATION_DISABLED` environment variable is set to `true`, the sync s
 
 Mapping user to `1000:1000` is just a way to ensure the database files are created using your own user, rather than root. If your operating system user ID is different from `1000:1000`, change it to yours.
 
-This example doesn't expose any ports for the container, however the sync server is accessible via port 8080 inside the container. The recommendation is to expose the server via a reverse proxy such as [Nginx Proxy Manager](https://nginxproxymanager.com/).
+This example doesn't expose any ports for the container, however the sync server is accessible via port 80 inside the container. The recommendation is to expose the server via a reverse proxy such as [Nginx Proxy Manager](https://nginxproxymanager.com/).
 
 ## Management API
 
