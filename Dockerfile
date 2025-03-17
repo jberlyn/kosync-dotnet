@@ -7,7 +7,6 @@ RUN dotnet publish -c Release -o output
 
 # Runtime environment
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine
-EXPOSE 8080
 WORKDIR /app
 COPY --from=build-env /app/output .
 ENTRYPOINT ["dotnet", "Kosync.dll"]
