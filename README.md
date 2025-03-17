@@ -20,6 +20,7 @@ services:
     volumes:
       - </path/to/data>:/app/data
     environment:
+      - ASPNETCORE_HTTP_PORTS=8080
       - ADMIN_PASSWORD=<super-strong-password>
       - REGISTRATION_DISABLED=false
     user: 1000:1000
@@ -33,7 +34,9 @@ If the `REGISTRATION_DISABLED` environment variable is set to `true`, the sync s
 
 Mapping user to `1000:1000` is just a way to ensure the database files are created using your own user, rather than root. If your operating system user ID is different from `1000:1000`, change it to yours.
 
-This example doesn't expose any ports for the container, however the sync server is accessible via port 80 inside the container. The recommendation is to expose the server via a reverse proxy such as [Nginx Proxy Manager](https://nginxproxymanager.com/).
+This example doesn't expose any ports for the container, however the sync server is accessible via port `8080` inside the container. The recommendation is to expose the server via a reverse proxy such as [Nginx Proxy Manager](https://nginxproxymanager.com/).
+
+Prior to .NET 8, the default port was `80`. This was changed for [various reasons](https://learn.microsoft.com/en-us/dotnet/core/compatibility/containers/8.0/aspnet-port) by Microsoft. You can manually set the port using the `ASPNETCORE_HTTP_PORTS` environment variable, if this is something you would like to configure.
 
 ## Management API
 
