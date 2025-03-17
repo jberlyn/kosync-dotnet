@@ -4,37 +4,69 @@ public class UserService
 {
     private KosyncDb _db;
 
-    public UserService(KosyncDb db)
+    private IHttpContextAccessor contextAccessor;
+
+    private bool userLoadAttempted = false;
+
+    public string? Username { get; private set; }
+
+    private bool _isAuthenticated = false;
+    public bool IsAuthenticated
+    {
+        get
+        {
+            LoadUser();
+            return _isAuthenticated;
+        }
+    }
+
+    private bool _isActive = false;
+
+    public bool IsActive
+    {
+        get
+        {
+            LoadUser();
+            return _isActive;
+        }
+    }
+
+    private bool _isAdmin = false;
+
+    public bool IsAdmin
+    {
+        get
+        {
+            LoadUser();
+            return _isAdmin;
+        }
+    }
+
+    public UserService(KosyncDb db, IHttpContextAccessor contextAccessor)
     {
         _db = db;
+        this.contextAccessor = contextAccessor;
     }
 
-    public (string? Username, string? PasswordHash) GetCredentials(HttpRequest request)
+    private void LoadUser()
     {
-        return (request.Headers["x-auth-user"], request.Headers["x-auth-key"]);
-    }
+        if (userLoadAttempted) { return; }
 
-    public bool IsAuthorised(HttpRequest request)
-    {
-        (string? username, string? passwordHash) = GetCredentials(request);
+        userLoadAttempted = true;
+
+        Username = contextAccessor?.HttpContext?.Request.Headers["x-auth-user"];
+        string? passwordHash = contextAccessor?.HttpContext?.Request.Headers["x-auth-key"];
 
         var userCollection = _db.Context.GetCollection<User>("users");
 
-        var user = userCollection.FindOne(i => i.Username == username && i.PasswordHash == passwordHash);
+        var user = userCollection.FindOne(i => i.Username == Username && i.PasswordHash == passwordHash);
 
-        return (user is not null && user.IsActive);
-    }
+        if (user is null) { return; }
 
-    public bool IsAdminUser(HttpRequest request)
-    {
-        if (IsAuthorised(request) == false) return false;
+        _isAuthenticated = true;
 
-        string? username = GetCredentials(request).Username;
+        _isActive = user.IsActive;
 
-        var userCollection = _db.Context.GetCollection<User>("users");
-
-        var user = userCollection.FindOne(i => i.Username == username);
-
-        return user?.IsAdministrator ?? false;
+        _isAdmin = user.IsAdministrator;
     }
 }

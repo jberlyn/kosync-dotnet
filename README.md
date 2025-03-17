@@ -39,7 +39,7 @@ This example doesn't expose any ports for the container, however the sync server
 
 There are some management API endpoints you can interact with using a tool like [Postman](https://www.postman.com/).
 
-Only the admin user can make requests to these API endpoints.
+Only the admin user can make requests to these API endpoints, with the exception of users being allowed to query their own documents.
 
 All requests to these API endpoints require the following headers.
 

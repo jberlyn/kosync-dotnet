@@ -9,10 +9,13 @@ public class SyncController : ControllerBase
 
     private UserService _userService;
 
-    public SyncController(KosyncDb db, UserService userService)
+    private ILogger<SyncController> _logger;
+
+    public SyncController(KosyncDb db, UserService userService, ILogger<SyncController> logger)
     {
         _db = db;
         _userService = userService;
+        _logger = logger;
     }
 
     [HttpGet("/")]
@@ -44,28 +47,29 @@ public class SyncController : ControllerBase
             });
         }
 
-        var userCollection = _db.Context.GetCollection<User>("users");
-
-        var user = userCollection.FindOne(u => u.Username == username && u.PasswordHash == passwordHash);
-        if (user is null)
+        if (!_userService.IsAuthenticated)
         {
+            _logger?.Log(LogLevel.Warning, "Login with invalid credentials attempted.");
             return StatusCode(401, new
             {
                 message = "User could not be found"
             });
         }
 
-        if (user.IsActive == false)
+        if (!_userService.IsActive)
         {
+            _logger?.Log(LogLevel.Warning, $"Login with inactive account [{username}] attempted.");
+
             return StatusCode(401, new
             {
                 message = "User is inactive"
             });
         }
 
+        _logger?.Log(LogLevel.Information, $"User {username} logged in.");
         return StatusCode(200, new
         {
-            username = user.Username
+            username = _userService.Username
         });
     }
 
@@ -74,6 +78,7 @@ public class SyncController : ControllerBase
     {
         if (Environment.GetEnvironmentVariable("REGISTRATION_DISABLED") == "true")
         {
+            _logger?.Log(LogLevel.Warning, "Account creation attempted but registration is disabled.");
             return StatusCode(402, new
             {
                 message = "User registration is disabled"
@@ -85,6 +90,7 @@ public class SyncController : ControllerBase
         var existing = userCollection.FindOne(u => u.Username == payload.username);
         if (existing is not null)
         {
+            _logger?.Log(LogLevel.Information, $"Attempted to create user that already exists - [{payload.username}].");
             return StatusCode(402, new
             {
                 message = "User already exists"
@@ -100,6 +106,8 @@ public class SyncController : ControllerBase
         userCollection.Insert(user);
         userCollection.EnsureIndex(u => u.Username);
 
+
+        _logger?.Log(LogLevel.Information, $"User [{payload.username}] created.");
         return StatusCode(201, new
         {
             username = payload.username
@@ -109,19 +117,31 @@ public class SyncController : ControllerBase
     [HttpPut("/syncs/progress")]
     public ObjectResult SyncProgress(DocumentRequest payload)
     {
-        if (_userService.IsAuthorised(Request) == false)
+        if (!_userService.IsAuthenticated)
         {
+            _logger?.Log(LogLevel.Warning, "Unauthorized progress update received.");
+
             return StatusCode(401, new
             {
                 message = "Unauthorized"
             });
         }
 
-        string? username = _userService.GetCredentials(Request).Username;
+        if (!_userService.IsActive)
+        {
+            _logger?.Log(LogLevel.Warning, $"Progress update from inactive user [{_userService.Username}] received.");
+
+            return StatusCode(401, new
+            {
+                message = "Unauthorized"
+            });
+        }
+
+        _logger?.Log(LogLevel.Information, $"Received progress update for user [{_userService.Username}] with document hash [{payload.document}].");
 
         var userCollection = _db.Context.GetCollection<User>("users").Include(i => i.Documents);
 
-        var user = userCollection.FindOne(i => i.Username == username);
+        var user = userCollection.FindOne(i => i.Username == _userService.Username);
 
         var document = user.Documents.SingleOrDefault(i => i.DocumentHash == payload.document);
         if (document is null)
@@ -149,24 +169,37 @@ public class SyncController : ControllerBase
     [HttpGet("/syncs/progress/{documentHash}")]
     public ObjectResult GetProgress(string documentHash)
     {
-        if (_userService.IsAuthorised(Request) == false)
+        if (!_userService.IsAuthenticated)
         {
+            _logger?.Log(LogLevel.Warning, "Unauthorized progress request received.");
+
             return StatusCode(401, new
             {
                 message = "Unauthorized"
             });
         }
 
-        string? username = _userService.GetCredentials(Request).Username;
+        if (!_userService.IsActive)
+        {
+            _logger?.Log(LogLevel.Warning, $"Progress request from inactive user [{_userService.Username}] received.");
+
+            return StatusCode(401, new
+            {
+                message = "Unauthorized"
+            });
+        }
+
+        _logger?.Log(LogLevel.Information, $"Received progress request for user [{_userService.Username}] with document hash [{documentHash}].");
 
         var userCollection = _db.Context.GetCollection<User>("users").Include(i => i.Documents);
 
-        var user = userCollection.FindOne(i => i.Username == username);
+        var user = userCollection.FindOne(i => i.Username == _userService.Username);
 
         var document = user.Documents.SingleOrDefault(i => i.DocumentHash == documentHash);
 
         if (document is null)
         {
+            _logger?.Log(LogLevel.Information, $"Document hash [{documentHash}] not found for user [{_userService.Username}].");
             return StatusCode(502, new
             {
                 message = "Document not found on server"
