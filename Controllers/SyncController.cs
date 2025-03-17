@@ -71,34 +71,6 @@ public class SyncController : ControllerBase
         {
             username = _userService.Username
         });
-
-        //var userCollection = _db.Context.GetCollection<User>("users");
-
-        //var user = userCollection.FindOne(u => u.Username == username && u.PasswordHash == passwordHash);
-        //if (user is null)
-        //{
-        //    logger?.Log(LogLevel.Warning, "Login with invalid credentials attempted.");
-        //    return StatusCode(401, new
-        //    {
-        //        message = "User could not be found"
-        //    });
-        //}
-
-        //if (user.IsActive == false)
-        //{
-        //    logger?.Log(LogLevel.Warning, $"Login with inactive account [{username}] attempted.");
-
-        //    return StatusCode(401, new
-        //    {
-        //        message = "User is inactive"
-        //    });
-        //}
-
-        //logger?.Log(LogLevel.Information, $"User {username} logged in.");
-        //return StatusCode(200, new
-        //{
-        //    username = user.Username
-        //});
     }
 
     [HttpPost("/users/create")]
@@ -165,18 +137,6 @@ public class SyncController : ControllerBase
             });
         }
 
-        //if (_userService.IsAuthorised(Request) == false)
-        //{
-        //    logger?.Log(LogLevel.Warning, "Unauthorized progress update received.");
-
-        //    return StatusCode(401, new
-        //    {
-        //        message = "Unauthorized"
-        //    });
-        //}
-
-        //string? username = _userService.Username;
-
         _logger?.Log(LogLevel.Information, $"Received progress update for user [{_userService.Username}] with document hash [{payload.document}].");
 
         var userCollection = _db.Context.GetCollection<User>("users").Include(i => i.Documents);
@@ -228,18 +188,6 @@ public class SyncController : ControllerBase
                 message = "Unauthorized"
             });
         }
-
-        //if (_userService.IsAuthorised(Request) == false)
-        //{
-        //    logger?.Log(LogLevel.Warning, "Unauthorized progress request received.");
-
-        //    return StatusCode(401, new
-        //    {
-        //        message = "Unauthorized"
-        //    });
-        //}
-
-        //string? username = _userService.Username;
 
         _logger?.Log(LogLevel.Information, $"Received progress request for user [{_userService.Username}] with document hash [{documentHash}].");
 

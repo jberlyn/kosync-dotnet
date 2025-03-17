@@ -51,16 +51,6 @@ public class ManagementController : ControllerBase
             });
         }
 
-        //if (_userService.IsAdminUser(Request) == false)
-        //{
-        //    logger?.Log(LogLevel.Warning, "Unauthorized GET request to /manage/users.");
-
-        //    return StatusCode(401, new
-        //    {
-        //        message = "Unauthorized"
-        //    });
-        //}
-
         _logger?.Log(LogLevel.Information, $"User [{_userService.Username}] requested /manage/users");
 
         var userCollection = _db.Context.GetCollection<User>("users");
@@ -109,15 +99,6 @@ public class ManagementController : ControllerBase
                 message = "Unauthorized"
             });
         }
-
-        //if (_userService.IsAdminUser(Request) == false)
-        //{
-        //    logger?.Log(LogLevel.Warning, "Unauthorized POST request to /manage/users.");
-        //    return StatusCode(401, new
-        //    {
-        //        message = "Unauthorized"
-        //    });
-        //}
 
         var userCollection = _db.Context.GetCollection<User>("users");
 
@@ -186,15 +167,6 @@ public class ManagementController : ControllerBase
             });
         }
 
-        //if (_userService.IsAdminUser(Request) == false)
-        //{
-        //    logger?.Log(LogLevel.Warning, "Unauthorized GET request to /manage/users/documents.");
-        //    return StatusCode(401, new
-        //    {
-        //        message = "Unauthorized"
-        //    });
-        //}
-
         _logger?.Log(LogLevel.Information, $"User [{username}]'s documents requested by [{_userService.Username}]");
 
         var userCollection = _db.Context.GetCollection<User>("users");
@@ -243,14 +215,6 @@ public class ManagementController : ControllerBase
                 message = "Unauthorized"
             });
         }
-        //if (_userService.IsAdminUser(Request) == false)
-        //{
-        //    logger?.Log(LogLevel.Warning, "Unauthorized PUT request to /manage/users/active.");
-        //    return StatusCode(401, new
-        //    {
-        //        message = "Unauthorized"
-        //    });
-        //}
 
         if (username == "admin")
         {
@@ -323,15 +287,6 @@ public class ManagementController : ControllerBase
                 message = "Password cannot be empty or whitespace"
             });
         }
-
-        //if (_userService.IsAdminUser(Request) == false)
-        //{
-        //    logger?.Log(LogLevel.Warning, "Unauthorized PUT request to /manage/users/password.");
-        //    return StatusCode(401, new
-        //    {
-        //        message = "Unauthorized"
-        //    });
-        //}
 
         if (username == "admin")
         {
