@@ -4,11 +4,19 @@ public class UserService
 {
     private KosyncDb _db;
 
-    private IHttpContextAccessor contextAccessor;
+    private IHttpContextAccessor _contextAccessor;
 
     private bool userLoadAttempted = false;
 
-    public string? Username { get; private set; }
+    private string? _username = "";
+    public string? Username
+    {
+        get
+        {
+            LoadUser();
+            return _username;
+        }
+    }
 
     private bool _isAuthenticated = false;
     public bool IsAuthenticated
@@ -21,7 +29,6 @@ public class UserService
     }
 
     private bool _isActive = false;
-
     public bool IsActive
     {
         get
@@ -32,7 +39,6 @@ public class UserService
     }
 
     private bool _isAdmin = false;
-
     public bool IsAdmin
     {
         get
@@ -45,7 +51,7 @@ public class UserService
     public UserService(KosyncDb db, IHttpContextAccessor contextAccessor)
     {
         _db = db;
-        this.contextAccessor = contextAccessor;
+        this._contextAccessor = contextAccessor;
     }
 
     private void LoadUser()
@@ -54,12 +60,14 @@ public class UserService
 
         userLoadAttempted = true;
 
-        Username = contextAccessor?.HttpContext?.Request.Headers["x-auth-user"];
-        string? passwordHash = contextAccessor?.HttpContext?.Request.Headers["x-auth-key"];
+        _username = _contextAccessor?.HttpContext?.Request.Headers["x-auth-user"];
+        if (_username is null) { _username = ""; }
+
+        string? passwordHash = _contextAccessor?.HttpContext?.Request.Headers["x-auth-key"];
 
         var userCollection = _db.Context.GetCollection<User>("users");
 
-        var user = userCollection.FindOne(i => i.Username == Username && i.PasswordHash == passwordHash);
+        var user = userCollection.FindOne(i => i.Username == _username && i.PasswordHash == passwordHash);
 
         if (user is null) { return; }
 
