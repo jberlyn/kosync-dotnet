@@ -60,16 +60,17 @@ public class UserService
 
         userLoadAttempted = true;
 
-        _username = _contextAccessor?.HttpContext?.Request.Headers["x-auth-user"];
-        if (_username is null) { _username = ""; }
+        string? tempUsername = _contextAccessor?.HttpContext?.Request.Headers["x-auth-user"];
 
         string? passwordHash = _contextAccessor?.HttpContext?.Request.Headers["x-auth-key"];
 
         var userCollection = _db.Context.GetCollection<User>("users");
 
-        var user = userCollection.FindOne(i => i.Username == _username && i.PasswordHash == passwordHash);
+        var user = userCollection.FindOne(i => i.Username == tempUsername && i.PasswordHash == passwordHash);
 
         if (user is null) { return; }
+
+        _username = tempUsername;
 
         _isAuthenticated = true;
 
