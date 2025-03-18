@@ -51,7 +51,7 @@ public class UserService
     public UserService(KosyncDb db, IHttpContextAccessor contextAccessor)
     {
         _db = db;
-        this._contextAccessor = contextAccessor;
+        _contextAccessor = contextAccessor;
     }
 
     private void LoadUser()
