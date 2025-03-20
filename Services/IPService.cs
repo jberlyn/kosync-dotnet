@@ -55,11 +55,28 @@ public class IPService
 
         _ipLoaded = true;
 
-        string? connectingIP = _context?.Connection.RemoteIpAddress?.ToString();
+        string? connectingIP;
+
+        IPAddress? remoteIP = _context?.Connection.RemoteIpAddress;
+
+        if (remoteIP is null)
+        {
+            connectingIP = "";
+        }
+        else
+        {
+            if (remoteIP.IsIPv4MappedToIPv6)
+            {
+                remoteIP = remoteIP.MapToIPv4();
+            }
+
+            connectingIP = remoteIP.ToString();
+        }
+
         if (connectingIP is null) { connectingIP = ""; }
 
-        LogInfo("Forwarded - " + _context?.Request.Headers["X-Forwarded-For"]);
-        LogInfo("Actual - " + _context?.Connection.RemoteIpAddress.ToString());
+        //LogInfo("Forwarded - " + _context?.Request.Headers["X-Forwarded-For"]);
+        //LogInfo("Actual - " + _context?.Connection.RemoteIpAddress.ToString());
         if (_proxyService.TrustedProxies.Contains(connectingIP))
         {
             _trustedProxy = true;
