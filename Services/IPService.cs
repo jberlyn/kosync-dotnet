@@ -58,7 +58,8 @@ public class IPService
         string? connectingIP = _context?.Connection.RemoteIpAddress?.ToString();
         if (connectingIP is null) { connectingIP = ""; }
 
-        LogInfo(_context?.Request.Headers["X-Forwarded-For"]);
+        LogInfo("Forwarded - " + _context?.Request.Headers["X-Forwarded-For"]);
+        LogInfo("Actual - " + _context?.Connection.RemoteIpAddress.ToString());
         if (_proxyService.TrustedProxies.Contains(connectingIP))
         {
             _trustedProxy = true;
