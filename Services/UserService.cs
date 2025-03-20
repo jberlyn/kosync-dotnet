@@ -61,14 +61,13 @@ public class UserService
 
         userLoadAttempted = true;
 
-        string? tempUsername = _contextAccessor?.HttpContext?.Request.Headers["x-auth-user"];
-        _username = tempUsername;
+        _username = _contextAccessor?.HttpContext?.Request.Headers["x-auth-user"];
 
         string? passwordHash = _contextAccessor?.HttpContext?.Request.Headers["x-auth-key"];
 
         var userCollection = _db.Context.GetCollection<User>("users");
 
-        var user = userCollection.FindOne(i => i.Username == tempUsername && i.PasswordHash == passwordHash);
+        var user = userCollection.FindOne(i => i.Username == _username && i.PasswordHash == passwordHash);
 
         if (user is null) { return; }
 
