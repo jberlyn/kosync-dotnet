@@ -2,11 +2,11 @@ namespace Kosync.Services;
 
 public class UserService
 {
+    private IHttpContextAccessor _contextAccessor;
     private KosyncDb _db;
 
-    private IHttpContextAccessor _contextAccessor;
-
     private bool userLoadAttempted = false;
+
 
     private string? _username = "";
     public string? Username
@@ -48,10 +48,11 @@ public class UserService
         }
     }
 
-    public UserService(KosyncDb db, IHttpContextAccessor contextAccessor)
+
+    public UserService(IHttpContextAccessor contextAccessor, KosyncDb db)
     {
-        _db = db;
         _contextAccessor = contextAccessor;
+        _db = db;
     }
 
     private void LoadUser()
@@ -61,6 +62,7 @@ public class UserService
         userLoadAttempted = true;
 
         string? tempUsername = _contextAccessor?.HttpContext?.Request.Headers["x-auth-user"];
+        _username = tempUsername;
 
         string? passwordHash = _contextAccessor?.HttpContext?.Request.Headers["x-auth-key"];
 
@@ -70,7 +72,6 @@ public class UserService
 
         if (user is null) { return; }
 
-        _username = tempUsername;
 
         _isAuthenticated = true;
 

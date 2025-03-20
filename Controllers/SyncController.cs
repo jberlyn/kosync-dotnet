@@ -5,17 +5,21 @@ namespace Kosync.Controllers;
 [ApiController]
 public class SyncController : ControllerBase
 {
-    private KosyncDb _db;
-
-    private UserService _userService;
-
     private ILogger<SyncController> _logger;
 
-    public SyncController(KosyncDb db, UserService userService, ILogger<SyncController> logger)
+    private ProxyService _proxyService;
+    private IPService _ipService;
+    private KosyncDb _db;
+    private UserService _userService;
+
+
+    public SyncController(ILogger<SyncController> logger, ProxyService proxyService, IPService ipService, KosyncDb db, UserService userService)
     {
+        _logger = logger;
+        _proxyService = proxyService;
+        _ipService = ipService;
         _db = db;
         _userService = userService;
-        _logger = logger;
     }
 
     [HttpGet("/")]
@@ -41,15 +45,18 @@ public class SyncController : ControllerBase
 
         if (username is null || passwordHash is null)
         {
+            LogWarning("Request to /users/auth without credentials");
+
             return StatusCode(401, new
             {
-                message = "Username and password invalid"
+                message = "Invalid credentials"
             });
         }
 
         if (!_userService.IsAuthenticated)
         {
-            _logger?.Log(LogLevel.Warning, "Login with invalid credentials attempted.");
+            LogWarning($"Login to [{username}] attempted with invalid credentials.");
+
             return StatusCode(401, new
             {
                 message = "User could not be found"
@@ -58,7 +65,7 @@ public class SyncController : ControllerBase
 
         if (!_userService.IsActive)
         {
-            _logger?.Log(LogLevel.Warning, $"Login with inactive account [{username}] attempted.");
+            LogWarning($"Login to inactive account [{username}] attempted.");
 
             return StatusCode(401, new
             {
@@ -66,7 +73,7 @@ public class SyncController : ControllerBase
             });
         }
 
-        _logger?.Log(LogLevel.Information, $"User {username} logged in.");
+        LogInfo($"User [{username}] logged in.");
         return StatusCode(200, new
         {
             username = _userService.Username
@@ -78,7 +85,7 @@ public class SyncController : ControllerBase
     {
         if (Environment.GetEnvironmentVariable("REGISTRATION_DISABLED") == "true")
         {
-            _logger?.Log(LogLevel.Warning, "Account creation attempted but registration is disabled.");
+            LogWarning("Account creation attempted but registration is disabled.");
             return StatusCode(402, new
             {
                 message = "User registration is disabled"
@@ -90,7 +97,7 @@ public class SyncController : ControllerBase
         var existing = userCollection.FindOne(u => u.Username == payload.username);
         if (existing is not null)
         {
-            _logger?.Log(LogLevel.Information, $"Attempted to create user that already exists - [{payload.username}].");
+            LogInfo($"Account creation attempted with existing username - [{payload.username}].");
             return StatusCode(402, new
             {
                 message = "User already exists"
@@ -107,7 +114,7 @@ public class SyncController : ControllerBase
         userCollection.EnsureIndex(u => u.Username);
 
 
-        _logger?.Log(LogLevel.Information, $"User [{payload.username}] created.");
+        LogInfo($"User [{payload.username}] created.");
         return StatusCode(201, new
         {
             username = payload.username
@@ -119,7 +126,14 @@ public class SyncController : ControllerBase
     {
         if (!_userService.IsAuthenticated)
         {
-            _logger?.Log(LogLevel.Warning, "Unauthorized progress update received.");
+            if (string.IsNullOrEmpty(_userService.Username))
+            {
+                LogWarning("Unauthenticated progress update received.");
+            }
+            else
+            {
+                LogWarning($"Unauthenticated progress update for user [{_userService.Username}] received.");
+            }
 
             return StatusCode(401, new
             {
@@ -129,15 +143,13 @@ public class SyncController : ControllerBase
 
         if (!_userService.IsActive)
         {
-            _logger?.Log(LogLevel.Warning, $"Progress update from inactive user [{_userService.Username}] received.");
+            LogWarning($"Progress update from inactive user [{_userService.Username}] received.");
 
             return StatusCode(401, new
             {
                 message = "Unauthorized"
             });
         }
-
-        _logger?.Log(LogLevel.Information, $"Received progress update for user [{_userService.Username}] with document hash [{payload.document}].");
 
         var userCollection = _db.Context.GetCollection<User>("users").Include(i => i.Documents);
 
@@ -159,6 +171,7 @@ public class SyncController : ControllerBase
 
         userCollection.Update(user);
 
+        LogInfo($"Received progress update for user [{_userService.Username}] with document hash [{payload.document}].");
         return StatusCode(200, new
         {
             document = document.DocumentHash,
@@ -171,7 +184,14 @@ public class SyncController : ControllerBase
     {
         if (!_userService.IsAuthenticated)
         {
-            _logger?.Log(LogLevel.Warning, "Unauthorized progress request received.");
+            if (string.IsNullOrEmpty(_userService.Username))
+            {
+                LogWarning("Unauthenticated progress request received.");
+            }
+            else
+            {
+                LogWarning($"Unauthenticated progress request for user [{_userService.Username}] received.");
+            }
 
             return StatusCode(401, new
             {
@@ -181,15 +201,13 @@ public class SyncController : ControllerBase
 
         if (!_userService.IsActive)
         {
-            _logger?.Log(LogLevel.Warning, $"Progress request from inactive user [{_userService.Username}] received.");
+            LogWarning($"Progress request from inactive user [{_userService.Username}] received.");
 
             return StatusCode(401, new
             {
                 message = "Unauthorized"
             });
         }
-
-        _logger?.Log(LogLevel.Information, $"Received progress request for user [{_userService.Username}] with document hash [{documentHash}].");
 
         var userCollection = _db.Context.GetCollection<User>("users").Include(i => i.Documents);
 
@@ -199,13 +217,14 @@ public class SyncController : ControllerBase
 
         if (document is null)
         {
-            _logger?.Log(LogLevel.Information, $"Document hash [{documentHash}] not found for user [{_userService.Username}].");
+            LogInfo($"Document hash [{documentHash}] not found for user [{_userService.Username}].");
             return StatusCode(502, new
             {
                 message = "Document not found on server"
             });
         }
 
+        LogInfo($"Received progress request for user [{_userService.Username}] with document hash [{documentHash}].");
         return StatusCode(200, new
         {
             device = document.Device,
@@ -214,5 +233,32 @@ public class SyncController : ControllerBase
             percentage = document.Percentage,
             progress = document.Progress
         });
+    }
+
+    private void LogInfo(string text)
+    {
+        Log(LogLevel.Information, text);
+    }
+
+    private void LogWarning(string text)
+    {
+        Log(LogLevel.Warning, text);
+    }
+
+    private void Log(LogLevel level, string text)
+    {
+        string logMsg = $"[{DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss")}] [{_ipService.ClientIP}]";
+
+
+        // If trusted proxies are set but this request comes from another address, mark it
+        if (_proxyService.TrustedProxies.Length > 0 &&
+            !_ipService.TrustedProxy)
+        {
+            logMsg += "* ";
+        }
+
+        logMsg += $" {text}";
+
+        _logger?.Log(level, logMsg);
     }
 }
