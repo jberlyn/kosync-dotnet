@@ -380,7 +380,7 @@ public class ManagementController : ControllerBase
         if (_proxyService.TrustedProxies.Length > 0 &&
             !_ipService.TrustedProxy)
         {
-            logMsg += "* ";
+            logMsg += "*";
         }
 
         logMsg += $" {text}";
