@@ -62,6 +62,8 @@ public class IPService
         {
             _trustedProxy = true;
 
+            LogInfo(_context?.Request.Headers["X-Forwarded-For"]);
+
             string? forwardedFor = _context?.Request.Headers["X-Forwarded-For"].FirstOrDefault();
             if (!string.IsNullOrEmpty(forwardedFor))
             {
