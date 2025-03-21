@@ -14,6 +14,17 @@ builder.Services.AddScoped<KosyncDb, KosyncDb>();
 builder.Services.AddControllers();
 
 
+if (Environment.GetEnvironmentVariable("SINGLE_LINE_LOGGING") == "true")
+{
+
+    builder.Logging.ClearProviders();
+    builder.Logging.AddSimpleConsole(options =>
+    {
+        options.SingleLine = true;
+    });
+}
+
+
 var app = builder.Build();
 
 app.UseForwardedHeaders();

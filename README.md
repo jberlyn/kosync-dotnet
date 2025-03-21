@@ -35,6 +35,8 @@ If the `REGISTRATION_DISABLED` environment variable is set to `true`, the sync s
 
 The `TRUSTED_PROXIES` environment variable is an optional variable that defines one or more trusted proxies. It should be a comma delineated list of IPv4 or IPv6 addresses. If `TRUSTED_PROXIES` is set, when a request comes through a trusted proxy, the X-Forwarded-For header will be checked for the client's real IP address to use in logging. If `TRUSTED_PROXIES` is not set, or if a request does not come through a trusted proxy, the request's source IP address will be used for logging. Requests that do not come through a trusted proxy when `TRUSTED_PROXIES` is set will be marked with an asterisk (*) in the logs.
 
+If you would like logging output to be on a single line, you may add the environment variable `SINGLE_LINE_LOGGING` and set it to `true`.
+
 Mapping user to `1000:1000` is just a way to ensure the database files are created using your own user, rather than root. If your operating system user ID is different from `1000:1000`, change it to yours.
 
 This example doesn't expose any ports for the container, however the sync server is accessible via port `8080` inside the container. The recommendation is to expose the server via a reverse proxy such as [Nginx Proxy Manager](https://nginxproxymanager.com/).
