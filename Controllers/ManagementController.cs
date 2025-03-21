@@ -5,17 +5,21 @@ namespace Kosync.Controllers;
 [ApiController]
 public class ManagementController : ControllerBase
 {
-    private KosyncDb _db;
-
-    private UserService _userService;
-
     private ILogger<ManagementController> _logger;
 
-    public ManagementController(KosyncDb db, UserService userService, ILogger<ManagementController> logger)
+    private ProxyService _proxyService;
+    private IPService _ipService;
+    private KosyncDb _db;
+    private UserService _userService;
+
+
+    public ManagementController(ILogger<ManagementController> logger, ProxyService proxyService, IPService ipService, KosyncDb db, UserService userService)
     {
+        _logger = logger;
+        _proxyService = proxyService;
+        _ipService = ipService;
         _db = db;
         _userService = userService;
-        _logger = logger;
     }
 
     [HttpGet("/manage/users")]
@@ -23,7 +27,14 @@ public class ManagementController : ControllerBase
     {
         if (!_userService.IsAuthenticated)
         {
-            _logger?.Log(LogLevel.Warning, "Unauthenticated GET request to /manage/users.");
+            if (string.IsNullOrEmpty(_userService.Username))
+            {
+                LogWarning("Unauthenticated GET request to /manage/users.");
+            }
+            else
+            {
+                LogWarning($"Unauthenticated GET request to /manage/users with username [{_userService.Username}].");
+            }
 
             return StatusCode(401, new
             {
@@ -33,7 +44,7 @@ public class ManagementController : ControllerBase
 
         if (!_userService.IsAdmin)
         {
-            _logger?.Log(LogLevel.Warning, $"Unauthorized GET request to /manage/users from user [{_userService.Username}].");
+            LogWarning($"Unauthorized GET request to /manage/users from user [{_userService.Username}].");
 
             return StatusCode(401, new
             {
@@ -43,7 +54,7 @@ public class ManagementController : ControllerBase
 
         if (!_userService.IsActive)
         {
-            _logger?.Log(LogLevel.Warning, $"GET request to /manage/users received from inactive user [{_userService.Username}].");
+            LogWarning($"GET request to /manage/users received from inactive user [{_userService.Username}].");
 
             return StatusCode(401, new
             {
@@ -51,7 +62,6 @@ public class ManagementController : ControllerBase
             });
         }
 
-        _logger?.Log(LogLevel.Information, $"User [{_userService.Username}] requested /manage/users");
 
         var userCollection = _db.Context.GetCollection<User>("users");
 
@@ -64,6 +74,7 @@ public class ManagementController : ControllerBase
             documentCount = i.Documents.Count()
         });
 
+        LogInfo($"User [{_userService.Username}] requested /manage/users");
         return StatusCode(200, users);
     }
 
@@ -72,7 +83,14 @@ public class ManagementController : ControllerBase
     {
         if (!_userService.IsAuthenticated)
         {
-            _logger?.Log(LogLevel.Warning, "Unauthenticated POST request to /manage/users.");
+            if (string.IsNullOrEmpty(_userService.Username))
+            {
+                LogWarning("Unauthenticated POST request to /manage/users.");
+            }
+            else
+            {
+                LogWarning($"Unauthenticated POST request to /manage/users with username [{_userService.Username}].");
+            }
 
             return StatusCode(401, new
             {
@@ -82,7 +100,7 @@ public class ManagementController : ControllerBase
 
         if (!_userService.IsAdmin)
         {
-            _logger?.Log(LogLevel.Warning, $"Unauthorized POST request to /manage/users from user [{_userService.Username}].");
+            LogWarning($"Unauthorized POST request to /manage/users from user [{_userService.Username}].");
 
             return StatusCode(401, new
             {
@@ -92,7 +110,7 @@ public class ManagementController : ControllerBase
 
         if (!_userService.IsActive)
         {
-            _logger?.Log(LogLevel.Warning, $"POST request to /manage/users received from inactive user [{_userService.Username}].");
+            LogWarning($"POST request to /manage/users received from inactive user [{_userService.Username}].");
 
             return StatusCode(401, new
             {
@@ -123,8 +141,7 @@ public class ManagementController : ControllerBase
         userCollection.Insert(user);
         userCollection.EnsureIndex(u => u.Username);
 
-        _logger?.Log(LogLevel.Information, $"User [{payload.username}] created by user [{_userService.Username}]");
-
+        LogInfo($"User [{payload.username}] created by user [{_userService.Username}]");
         return StatusCode(200, new
         {
             message = "User created successfully"
@@ -136,7 +153,14 @@ public class ManagementController : ControllerBase
     {
         if (!_userService.IsAuthenticated)
         {
-            _logger?.Log(LogLevel.Warning, "Unauthenticated GET request to /manage/users/documents.");
+            if (string.IsNullOrEmpty(_userService.Username))
+            {
+                LogWarning("Unauthenticated GET request to /manage/users/documents.");
+            }
+            else
+            {
+                LogWarning($"Unauthenticated GET request to /manage/users/documents with username [{_userService.Username}].");
+            }
 
             return StatusCode(401, new
             {
@@ -149,7 +173,7 @@ public class ManagementController : ControllerBase
             !username.Equals(_userService.Username, StringComparison.OrdinalIgnoreCase))
             // allow a user to request their own docs
         {
-            _logger?.Log(LogLevel.Warning, $"Unauthorized GET request to /manage/users/documents from user [{_userService.Username}].");
+            LogWarning($"Unauthorized GET request to /manage/users/documents from user [{_userService.Username}].");
 
             return StatusCode(401, new
             {
@@ -159,7 +183,7 @@ public class ManagementController : ControllerBase
 
         if (!_userService.IsActive)
         {
-            _logger?.Log(LogLevel.Warning, $"GET request to /manage/users/documents received from inactive user [{_userService.Username}].");
+            LogWarning($"GET request to /manage/users/documents received from inactive user [{_userService.Username}].");
 
             return StatusCode(401, new
             {
@@ -167,7 +191,7 @@ public class ManagementController : ControllerBase
             });
         }
 
-        _logger?.Log(LogLevel.Information, $"User [{username}]'s documents requested by [{_userService.Username}]");
+        LogInfo($"User [{username}]'s documents requested by [{_userService.Username}]");
 
         var userCollection = _db.Context.GetCollection<User>("users");
 
@@ -188,7 +212,14 @@ public class ManagementController : ControllerBase
     {
         if (!_userService.IsAuthenticated)
         {
-            _logger?.Log(LogLevel.Warning, "Unauthenticated PUT request to /manage/users/active.");
+            if (string.IsNullOrEmpty(_userService.Username))
+            {
+                LogWarning("Unauthenticated PUT request to /manage/users/active.");
+            }
+            else
+            {
+                LogWarning($"Unauthenticated PUT request to /manage/users/active with username [{_userService.Username}].");
+            }
 
             return StatusCode(401, new
             {
@@ -198,7 +229,7 @@ public class ManagementController : ControllerBase
 
         if (!_userService.IsAdmin)
         {
-            _logger?.Log(LogLevel.Warning, $"Unauthorized PUT request to /manage/users/active from user [{_userService.Username}].");
+            LogWarning($"Unauthorized PUT request to /manage/users/active from user [{_userService.Username}].");
 
             return StatusCode(401, new
             {
@@ -208,7 +239,7 @@ public class ManagementController : ControllerBase
 
         if (!_userService.IsActive)
         {
-            _logger?.Log(LogLevel.Warning, $"PUT request to /manage/users/active received from inactive user [{_userService.Username}].");
+            LogWarning($"PUT request to /manage/users/active received from inactive user [{_userService.Username}].");
 
             return StatusCode(401, new
             {
@@ -218,6 +249,8 @@ public class ManagementController : ControllerBase
 
         if (username == "admin")
         {
+            LogWarning($"Attempt to toggle admin user active from user [{_userService.Username}].");
+
             return StatusCode(400, new
             {
                 message = "Cannot update admin user"
@@ -229,6 +262,8 @@ public class ManagementController : ControllerBase
         var user = userCollection.FindOne(i => i.Username == username);
         if (user is null)
         {
+            LogInfo($"PUT request to /manage/users/active received from [{_userService.Username}] but target username [{username}] does not exist.");
+
             return StatusCode(400, new
             {
                 message = "User does not exist"
@@ -238,7 +273,7 @@ public class ManagementController : ControllerBase
         user.IsActive = !user.IsActive;
         userCollection.Update(user);
 
-        _logger?.Log(LogLevel.Information, $"User [{username}] set to {(user.IsActive ? "active" : "inactive")} by user [{_userService.Username}]");
+        LogInfo($"User [{username}] set to {(user.IsActive ? "active" : "inactive")} by user [{_userService.Username}]");
 
         return StatusCode(200, new
         {
@@ -251,7 +286,14 @@ public class ManagementController : ControllerBase
     {
         if (!_userService.IsAuthenticated)
         {
-            _logger?.Log(LogLevel.Warning, "Unauthenticated PUT request to /manage/users/password.");
+            if (string.IsNullOrEmpty(_userService.Username))
+            {
+                LogWarning("Unauthenticated PUT request to /manage/users/password.");
+            }
+            else
+            {
+                LogWarning($"Unauthenticated PUT request to /manage/users/password with username [{_userService.Username}].");
+            }
 
             return StatusCode(401, new
             {
@@ -261,7 +303,7 @@ public class ManagementController : ControllerBase
 
         if (!_userService.IsAdmin)
         {
-            _logger?.Log(LogLevel.Warning, $"Unauthorized PUT request to /manage/users/password from user [{_userService.Username}].");
+            LogWarning($"Unauthorized PUT request to /manage/users/password from user [{_userService.Username}].");
 
             return StatusCode(401, new
             {
@@ -271,7 +313,7 @@ public class ManagementController : ControllerBase
 
         if (!_userService.IsActive)
         {
-            _logger?.Log(LogLevel.Warning, $"PUT request to /manage/users/password received from inactive user [{_userService.Username}].");
+            LogWarning($"PUT request to /manage/users/password received from inactive user [{_userService.Username}].");
 
             return StatusCode(401, new
             {
@@ -290,6 +332,7 @@ public class ManagementController : ControllerBase
 
         if (username == "admin")
         {
+            LogWarning($"Attempt to change admin password from user [{_userService.Username}].");
             return StatusCode(400, new
             {
                 message = "Cannot update admin user"
@@ -301,6 +344,7 @@ public class ManagementController : ControllerBase
         var user = userCollection.FindOne(i => i.Username == username);
         if (user is null)
         {
+            LogWarning($"Password change request received from [{_userService.Username}] but target username [{username}] does not exist.");
             return StatusCode(400, new
             {
                 message = "User does not exist"
@@ -310,11 +354,37 @@ public class ManagementController : ControllerBase
         user.PasswordHash = Utility.HashPassword(payload.password);
         userCollection.Update(user);
 
-        _logger?.Log(LogLevel.Information, $"User [{username}]'s password updated by [{_userService.Username}].");
-
+        LogInfo($"User [{username}]'s password updated by [{_userService.Username}].");
         return StatusCode(200, new
         {
             message = "Password changed successfully"
         });
+    }
+
+    private void LogInfo(string text)
+    {
+        Log(LogLevel.Information, text);
+    }
+
+    private void LogWarning(string text)
+    {
+        Log(LogLevel.Warning, text);
+    }
+
+    private void Log(LogLevel level, string text)
+    {
+        string logMsg = $"[{DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss")}] [{_ipService.ClientIP}]";
+
+
+        // If trusted proxies are set but this request comes from another address, mark it
+        if (_proxyService.TrustedProxies.Length > 0 &&
+            !_ipService.TrustedProxy)
+        {
+            logMsg += "*";
+        }
+
+        logMsg += $" {text}";
+
+        _logger?.Log(level, logMsg);
     }
 }
