@@ -171,7 +171,7 @@ public class SyncController : ControllerBase
 
         userCollection.Update(user);
 
-        LogInfo($"Received progress update for user [{_userService.Username}] with document hash [{payload.document}].");
+        LogInfo($"Received progress update for user [{_userService.Username}] from device [{payload.device}] with document hash [{payload.document}].");
         return StatusCode(200, new
         {
             document = document.DocumentHash,
