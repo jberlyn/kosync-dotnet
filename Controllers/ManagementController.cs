@@ -148,6 +148,73 @@ public class ManagementController : ControllerBase
         });
     }
 
+    [HttpDelete("/manage/users")]
+    public ObjectResult DeleteUser(string username)
+    {
+        if (!_userService.IsAuthenticated)
+        {
+            if (string.IsNullOrEmpty(_userService.Username))
+            {
+                LogWarning("Unauthenticated DELETE request to /manage/users.");
+            }
+            else
+            {
+                LogWarning($"Unauthenticated DELETE request to /manage/users with username [{_userService.Username}].");
+            }
+
+            return StatusCode(401, new
+            {
+                message = "Unauthorized"
+            });
+        }
+
+
+        if (!_userService.IsAdmin &&
+            !username.Equals(_userService.Username, StringComparison.OrdinalIgnoreCase))
+        // allow a user to delete their own account
+        {
+            LogWarning($"Unauthorized DELETE request to /manage/users from user [{_userService.Username}].");
+
+            return StatusCode(401, new
+            {
+                message = "Unauthorized"
+            });
+        }
+
+        if (!_userService.IsActive)
+        {
+            LogWarning($"DELETE request to /manage/users from inactive user [{_userService.Username}].");
+
+            return StatusCode(401, new
+            {
+                message = "Unauthorized"
+            });
+        }
+
+        var userCollection = _db.Context.GetCollection<User>("users");
+
+        var user = userCollection.FindOne(u => u.Username == username);
+
+        if (user is null)
+        {
+            LogInfo($"DELETE request to /manage/users received from [{_userService.Username}] but target username [{username}] does not exist.");
+
+            return StatusCode(404, new
+            {
+                message = "User does not exist"
+            });
+        }
+
+        userCollection.Delete(user.Id);
+
+        LogInfo($"User [{username}] has been deleted by [{_userService.Username}]");
+
+        return StatusCode(200, new
+        {
+            message = "Success"
+        });
+    }
+
     [HttpGet("/manage/users/documents")]
     public ObjectResult GetDocuments(string username)
     {
@@ -205,6 +272,73 @@ public class ManagementController : ControllerBase
         }
 
         return StatusCode(200, user.Documents);
+    }
+
+    [HttpDelete("/manage/users/documents")]
+    public ObjectResult DeleteUserDocument(string username, string documentHash)
+    {
+        if (!_userService.IsAuthenticated)
+        {
+            if (string.IsNullOrEmpty(_userService.Username))
+            {
+                LogWarning("Unauthenticated DELETE request to /manage/users/documents.");
+            }
+            else
+            {
+                LogWarning($"Unauthenticated DELETE request to /manage/users/documents with username [{_userService.Username}].");
+            }
+
+            return StatusCode(401, new
+            {
+                message = "Unauthorized"
+            });
+        }
+
+        if (!_userService.IsAdmin &&
+            !username.Equals(_userService.Username, StringComparison.OrdinalIgnoreCase))
+        {
+            LogWarning($"Unauthorized DELETE request to /manage/users/documents from user [{_userService.Username}].");
+
+            return StatusCode(401, new
+            {
+                message = "Unauthorized"
+            });
+        }
+
+        if (!_userService.IsActive)
+        {
+            LogWarning($"DELETE request to /manage/users/documents from inactive user [{_userService.Username}].");
+
+            return StatusCode(401, new
+            {
+                message = "Unauthorized"
+            });
+        }
+
+        var userCollection = _db.Context.GetCollection<User>("users").Include(i => i.Documents);
+
+        var user = userCollection.FindOne(i => i.Username == username);
+
+        var document = user.Documents.SingleOrDefault(i => i.DocumentHash == documentHash);
+
+        if (document is null)
+        {
+            return StatusCode(404, new
+            {
+                message = $"Document hash [{documentHash}] was not found for user [{username}]."
+            });
+        }
+
+        user.Documents.Remove(document);
+
+        userCollection.Update(user);
+
+        LogInfo($"User [{_userService.Username}] deleted document with hash [{documentHash}] for user [{username}].");
+
+        return StatusCode(200, new
+        {
+            message = "Success"
+        });
     }
 
     [HttpPut("/manage/users/active")]
