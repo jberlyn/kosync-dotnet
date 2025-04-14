@@ -106,7 +106,7 @@ Creates a new user. This endpoint circumvents the `REGISTRATION_DISABLED` enviro
 }
 ```
 
-### DELETE /manage/users
+### DELETE /manage/users?username=username
 
 Deletes a user. The username to be deleted must be passed via a query parameter.
 
