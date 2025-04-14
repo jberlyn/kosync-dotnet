@@ -47,7 +47,7 @@ Prior to .NET 8, the default port was `80`. This was changed for [various reason
 
 There are some management API endpoints you can interact with using a tool like [Postman](https://www.postman.com/).
 
-Only the admin user can make requests to these API endpoints, with the exception of users being allowed to query their own documents.
+Only the admin user can make requests to these API endpoints, with the exception of users being allowed to query and delete their own documents and delete their own account.
 
 All requests to these API endpoints require the following headers.
 
@@ -106,6 +106,18 @@ Creates a new user. This endpoint circumvents the `REGISTRATION_DISABLED` enviro
 }
 ```
 
+### DELETE /manage/users?username=username
+
+Deletes a user. The username to be deleted must be passed via a query parameter.
+
+**Example Response**
+
+```json
+{
+    "message": "Success"
+}
+```
+
 ### GET /manage/users/documents?username=username
 
 Returns a list of documents for a user and their sync status. The username for the user must be passed via a query parameter.
@@ -131,6 +143,18 @@ Returns a list of documents for a user and their sync status. The username for t
         "timestamp": "2023-05-23T11:44:34.165+10:00"
     }
 ]
+```
+
+### DELETE /manage/users/documents?username=username&documentHash=documentHash
+
+Deletes a document for a user. The username for the user and the document hash must be passed via query parameters.
+
+***Example Response***
+
+```json
+{
+    "message": "Success"
+}
 ```
 
 ### PUT /manage/users/active?username=username
