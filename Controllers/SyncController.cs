@@ -225,13 +225,18 @@ public class SyncController : ControllerBase
         }
 
         LogInfo($"Received progress request for user [{_userService.Username}] with document hash [{documentHash}].");
+
+
+        var time = new DateTimeOffset(document.Timestamp);
+
         return StatusCode(200, new
         {
             device = document.Device,
             device_id = document.DeviceId,
             document = document.DocumentHash,
             percentage = document.Percentage,
-            progress = document.Progress
+            progress = document.Progress,
+            timestamp = time.ToUnixTimeSeconds()
         });
     }
 
