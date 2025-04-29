@@ -180,7 +180,7 @@ public class SyncController : ControllerBase
     }
 
     [HttpGet("/syncs/progress/{documentHash}")]
-    public ObjectResult GetProgress(string documentHash)
+    public IActionResult GetProgress(string documentHash)
     {
         if (!_userService.IsAuthenticated)
         {
@@ -225,14 +225,27 @@ public class SyncController : ControllerBase
         }
 
         LogInfo($"Received progress request for user [{_userService.Username}] with document hash [{documentHash}].");
-        return StatusCode(200, new
+
+        var time = new DateTimeOffset(document.Timestamp);
+
+        var result = new
         {
             device = document.Device,
             device_id = document.DeviceId,
             document = document.DocumentHash,
             percentage = document.Percentage,
-            progress = document.Progress
-        });
+            progress = document.Progress,
+            timestamp = time.ToUnixTimeSeconds()
+        };
+
+        string json = System.Text.Json.JsonSerializer.Serialize(result);
+
+        return new ContentResult()
+        {
+            Content = json,
+            ContentType = "application/json",
+            StatusCode = 200
+        };
     }
 
     private void LogInfo(string text)
