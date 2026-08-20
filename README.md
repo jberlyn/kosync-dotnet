@@ -10,6 +10,8 @@ All data is stored inside a [LiteDB](https://www.litedb.org/) database file.
 
 The recommendation is to use [Docker](https://www.docker.com/) with [Docker Compose](https://docs.docker.com/compose/).
 
+Published images are available for `linux/amd64` and `linux/arm64`; Docker automatically selects the correct image for the host architecture.
+
 ```
 version: "3"
 services:
