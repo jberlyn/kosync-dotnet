@@ -1,6 +1,6 @@
 namespace Kosync.Database;
 
-public class KosyncDb
+public class KosyncDb : IDisposable
 {
     public LiteDatabase Context { get; } = default!;
 
@@ -11,7 +11,7 @@ public class KosyncDb
             Directory.CreateDirectory("data");
         }
 
-        Context = new LiteDatabase("Filename=data/Kosync.db;Connection=shared");
+        Context = new LiteDatabase("Filename=data/Kosync.db;Connection=direct");
         CreateDefaults();
     }
 
@@ -40,5 +40,10 @@ public class KosyncDb
 
         userCollection.Update(adminUser);
         userCollection.EnsureIndex(i => i.Username);
+    }
+
+    public void Dispose()
+    {
+        Context?.Dispose();
     }
 }

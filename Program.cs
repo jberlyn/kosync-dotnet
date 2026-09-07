@@ -8,7 +8,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ProxyService, ProxyService>();
 builder.Services.AddScoped<IPService, IPService>();
 builder.Services.AddScoped<UserService, UserService>();
-builder.Services.AddScoped<KosyncDb, KosyncDb>();
+builder.Services.AddSingleton<KosyncDb, KosyncDb>();
 
 
 builder.Services.AddControllers();
