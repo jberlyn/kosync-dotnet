@@ -37,6 +37,8 @@ public class KosyncDb : IDisposable
         }
 
         adminUser.PasswordHash = Utility.HashPassword(adminPassword);
+        adminUser.IsActive = true;
+        adminUser.IsAdministrator = true;
 
         userCollection.Update(adminUser);
         userCollection.EnsureIndex(i => i.Username);

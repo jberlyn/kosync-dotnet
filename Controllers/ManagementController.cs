@@ -205,6 +205,16 @@ public class ManagementController : ControllerBase
             });
         }
 
+        if (user.IsAdministrator)
+        {
+            LogWarning($"Attempt to delete admin user [{username}] from user [{_userService.Username}].");
+
+            return StatusCode(400, new
+            {
+                message = "Cannot delete admin user"
+            });
+        }
+
         userCollection.Delete(user.Id);
 
         LogInfo($"User [{username}] has been deleted by [{_userService.Username}]");
@@ -381,16 +391,6 @@ public class ManagementController : ControllerBase
             });
         }
 
-        if (username == "admin")
-        {
-            LogWarning($"Attempt to toggle admin user active from user [{_userService.Username}].");
-
-            return StatusCode(400, new
-            {
-                message = "Cannot update admin user"
-            });
-        }
-
         var userCollection = _db.Context.GetCollection<User>("users");
 
         var user = userCollection.FindOne(i => i.Username == username);
@@ -401,6 +401,16 @@ public class ManagementController : ControllerBase
             return StatusCode(400, new
             {
                 message = "User does not exist"
+            });
+        }
+
+        if (user.IsAdministrator)
+        {
+            LogWarning($"Attempt to toggle admin user active from user [{_userService.Username}].");
+
+            return StatusCode(400, new
+            {
+                message = "Cannot update admin user"
             });
         }
 
@@ -464,15 +474,6 @@ public class ManagementController : ControllerBase
             });
         }
 
-        if (username == "admin")
-        {
-            LogWarning($"Attempt to change admin password from user [{_userService.Username}].");
-            return StatusCode(400, new
-            {
-                message = "Cannot update admin user"
-            });
-        }
-
         var userCollection = _db.Context.GetCollection<User>("users");
 
         var user = userCollection.FindOne(i => i.Username == username);
@@ -482,6 +483,15 @@ public class ManagementController : ControllerBase
             return StatusCode(400, new
             {
                 message = "User does not exist"
+            });
+        }
+
+        if (user.IsAdministrator)
+        {
+            LogWarning($"Attempt to change admin password from user [{_userService.Username}].");
+            return StatusCode(400, new
+            {
+                message = "Cannot update admin user"
             });
         }
 
