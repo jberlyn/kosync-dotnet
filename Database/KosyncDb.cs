@@ -6,6 +6,11 @@ public class KosyncDb
 
     public KosyncDb()
     {
+        if (!Directory.Exists("data"))
+        {
+            Directory.CreateDirectory("data");
+        }
+
         Context = new LiteDatabase("Filename=data/Kosync.db;Connection=shared");
         CreateDefaults();
     }
