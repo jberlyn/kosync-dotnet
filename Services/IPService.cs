@@ -1,4 +1,4 @@
-﻿
+
 
 using System.Net;
 
@@ -77,7 +77,7 @@ public class IPService
 
         //LogInfo("Forwarded - " + _context?.Request.Headers["X-Forwarded-For"]);
         //LogInfo("Actual - " + _context?.Connection.RemoteIpAddress.ToString());
-        if (_proxyService.TrustedProxies.Contains(connectingIP))
+        if (_proxyService.IsTrustedProxy(remoteIP))
         {
             _trustedProxy = true;
 

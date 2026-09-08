@@ -25,7 +25,7 @@ services:
       - ASPNETCORE_HTTP_PORTS=8080
       - ADMIN_PASSWORD=<super-strong-password>
       - REGISTRATION_DISABLED=false
-      - TRUSTED_PROXIES=1.2.3.4, ::1
+      - TRUSTED_PROXIES=1.2.3.4, ::1, 10.0.0.0/24, 2001:db8::/32
     user: 1000:1000
 ```
 
@@ -35,7 +35,7 @@ An admin user with the username `admin` will be created when the server first st
 
 If the `REGISTRATION_DISABLED` environment variable is set to `true`, the sync server will respond with an `User registration is disabled` error message when trying to create a new user. This is useful if you expose your sync server to the public internet, but don't want anyone to be able to register a user. This is a feature that is not available in the official sync server.
 
-The `TRUSTED_PROXIES` environment variable is an optional variable that defines one or more trusted proxies. It should be a comma delineated list of IPv4 or IPv6 addresses. If `TRUSTED_PROXIES` is set, when a request comes through a trusted proxy, the X-Forwarded-For header will be checked for the client's real IP address to use in logging. If `TRUSTED_PROXIES` is not set, or if a request does not come through a trusted proxy, the request's source IP address will be used for logging. Requests that do not come through a trusted proxy when `TRUSTED_PROXIES` is set will be marked with an asterisk (*) in the logs.
+The `TRUSTED_PROXIES` environment variable is an optional variable that defines one or more trusted proxies. It should be a comma delineated list of IPv4 or IPv6 addresses, or CIDR notation subnets (e.g. `10.0.0.0/24`, `10.1.2.3/32`, `2001:db8::/32`). If `TRUSTED_PROXIES` is set, when a request comes through a trusted proxy, the X-Forwarded-For header will be checked for the client's real IP address to use in logging. If `TRUSTED_PROXIES` is not set, or if a request does not come through a trusted proxy, the request's source IP address will be used for logging. Requests that do not come through a trusted proxy when `TRUSTED_PROXIES` is set will be marked with an asterisk (*) in the logs.
 
 If you would like logging output to be on a single line, you may add the environment variable `SINGLE_LINE_LOGGING` and set it to `true`.
 

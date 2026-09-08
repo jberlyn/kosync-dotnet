@@ -1,6 +1,7 @@
-﻿
+
 
 using System.Net;
+using System.Net.Sockets;
 
 namespace Kosync.Services;
 
@@ -11,11 +12,11 @@ public class ProxyService
     private bool _proxiesLoaded = false;
 
 
-    private string[] _trustedProxies = [];
+    private IPNetwork[] _trustedProxies = [];
     /// <summary>
     /// List of configured trusted proxies
     /// </summary>
-    public string[] TrustedProxies
+    public IPNetwork[] TrustedProxies
     {
         get
         {
@@ -25,9 +26,49 @@ public class ProxyService
     }
 
 
-    public ProxyService(ILogger<ProxyService> logger)
+    public ProxyService(ILogger<ProxyService>? logger = null)
     {
         _logger = logger;
+    }
+
+    public bool IsTrustedProxy(IPAddress? address)
+    {
+        if (address is null)
+        {
+            return false;
+        }
+
+        if (address.IsIPv4MappedToIPv6)
+        {
+            address = address.MapToIPv4();
+        }
+
+        LoadProxies();
+
+        foreach (var network in _trustedProxies)
+        {
+            if (network.Contains(address))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public bool IsTrustedProxy(string? address)
+    {
+        if (string.IsNullOrWhiteSpace(address))
+        {
+            return false;
+        }
+
+        if (IPAddress.TryParse(address, out IPAddress? ip))
+        {
+            return IsTrustedProxy(ip);
+        }
+
+        return false;
     }
 
     private void LoadProxies()
@@ -35,7 +76,6 @@ public class ProxyService
         if (_proxiesLoaded) { return; }
 
         _proxiesLoaded = true;
-        string? tempString;
 
         string? proxies = Environment.GetEnvironmentVariable("TRUSTED_PROXIES");
 
@@ -47,18 +87,21 @@ public class ProxyService
         }
 
         string[] tempProxies = proxies.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        List<IPNetwork> validProxies = [];
 
-        for (int i = 0; i < tempProxies.Length; i++)
+        foreach (string proxy in tempProxies)
         {
-            if (!IPAddress.TryParse(tempProxies[i], out _))
+            if (TryParseProxy(proxy, out IPNetwork network))
             {
-                LogWarning($"Inavalid trusted proxy - {tempProxies[i]}");
-
-                tempProxies[i] = "";
+                validProxies.Add(network);
+            }
+            else
+            {
+                LogWarning($"Invalid trusted proxy - {proxy}");
             }
         }
 
-        _trustedProxies = tempProxies.Where(p => !string.IsNullOrEmpty(p)).ToArray();
+        _trustedProxies = validProxies.ToArray();
 
         if (_trustedProxies.Length == 0)
         {
@@ -66,19 +109,33 @@ public class ProxyService
         }
         else
         {
-            tempString = "";
-
-            foreach (var prox in _trustedProxies)
-            {
-                if (!string.IsNullOrEmpty(tempString)) { tempString += ", "; }
-
-                tempString += prox;
-            }
-
-            tempString = "Trusted proxies: " + tempString;
+            string tempString = "Trusted proxies: " + string.Join(", ", _trustedProxies.Select(p => p.ToString()));
 
             LogInfo(tempString);
         }
+    }
+
+    private static bool TryParseProxy(string value, out IPNetwork network)
+    {
+        if (IPNetwork.TryParse(value, out network))
+        {
+            return true;
+        }
+
+        if (IPAddress.TryParse(value, out IPAddress? ip))
+        {
+            if (ip.IsIPv4MappedToIPv6)
+            {
+                ip = ip.MapToIPv4();
+            }
+
+            int prefixLength = ip.AddressFamily == AddressFamily.InterNetwork ? 32 : 128;
+            network = new IPNetwork(ip, prefixLength);
+            return true;
+        }
+
+        network = default;
+        return false;
     }
 
     private void LogWarning(string text)
