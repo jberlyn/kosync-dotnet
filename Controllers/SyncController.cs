@@ -218,10 +218,10 @@ public class SyncController : ControllerBase
         if (document is null)
         {
             LogInfo($"Document hash [{documentHash}] not found for user [{_userService.Username}].");
-            return StatusCode(502, new
-            {
-                message = "Document not found on server"
-            });
+            // The reference koreader-sync-server answers an unknown document with 200 and an
+            // empty object; clients that pull before they push (CrossPoint) treat anything
+            // else as a server fault and never upload.
+            return StatusCode(200, new { });
         }
 
         LogInfo($"Received progress request for user [{_userService.Username}] with document hash [{documentHash}].");
